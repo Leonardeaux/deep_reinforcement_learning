@@ -1,0 +1,7 @@
+1 Observations:
+    - Etat du plateau de jeux
+    - Valeurs des dés
+
+2 Action:
+    - Indication de la combinaison de dés choisi (soit la colonne)
+    ? - Indication s'il faut continuer ou le tour ou pas

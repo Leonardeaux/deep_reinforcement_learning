@@ -28,7 +28,7 @@ class CantStop(DeepEnv):
     def __init__(self) -> None:
         self.OBS_SIZE = 83  # Nombre de case
         self.ACTION_SIZE = 83*2  # Nombre de case * 2 (continuer ou non)
-        self.player = Player("RED", True, "player")
+        self.player = Player("RED", False, "player")
         self.opponent = Player("GREEN", True, "opponent")
         self.reset()
 
@@ -144,7 +144,7 @@ class CantStop(DeepEnv):
 
             # Player turn
             while not turn_over:
-                # print(player.type + " turn: ", player.piece)
+                print(f"{player.type} turn: {player.piece}({player.nb_piece})")
                 dices = self.roll_dices()
 
                 actions_mask = self.available_actions_mask(player, opponent)
@@ -178,9 +178,10 @@ class CantStop(DeepEnv):
 
                     continue_turn = input("Do you want to continue your turn? (y/n): ")
 
-                # if continue_turn == "n":
-                    # print('End of turn\n')
-                turn_over = True
+                if continue_turn == "n":
+                    print('End of turn\n')
+                    turn_over = True
+                print(self.board)
 
     def play(self):
         while not self.game_over:
