@@ -68,10 +68,10 @@ class BallonPop:
         num_rolls = 0
         while num_rolls < 2:
             self.print()
-            print("Dés actuels:", self.dice_rolls)
+            print("Actual dices:", self.dice_rolls)
             print("Options:", self.get_available_combinations())
-
-            reroll_indices = input("Entrez les indices des dés à relancer (séparés par des espaces) ou appuyez sur Entrée pour conserver tous les dés: ")
+             
+            reroll_indices = input("Enter the indices of the dice to reroll (separated by spaces) or press Enter to keep all dice:")
             if reroll_indices:
                 reroll_indices = [int(i) - 1 for i in reroll_indices.split()]
                 new_dice_rolls = [self.dice_rolls[i] for i in range(len(self.dice_rolls)) if i not in reroll_indices]
@@ -79,8 +79,8 @@ class BallonPop:
                 self.dice_rolls = new_dice_rolls
             num_rolls += 1
 
-        self.step(self.dice_rolls)  # Mise à jour des scores
-        print("Dés finaux pour ce tour:", self.dice_rolls)
+        self.step(self.dice_rolls)  # Update scores
+        print("Final dice for this turn", self.dice_rolls)
 
     def play(self):
         while not self.game_over:
@@ -89,6 +89,6 @@ class BallonPop:
                 self.game_over = True
         print("Game over, final score: ", self.get_score())
 
-# Exemple d'utilisation
+
 game = BallonPop()
 game.play()
