@@ -60,7 +60,7 @@ class BallonPop:
 
     def get_available_combinations(self):
         # Provide options for dice to keep or reroll
-        options = [f"Dé {i+1}: {self.dice_rolls[i]}" for i in range(len(self.dice_rolls))]
+        options = [f"Dice {i+1}: {self.dice_rolls[i]}" for i in range(len(self.dice_rolls))]
         return options
 
     def play_turn(self):
