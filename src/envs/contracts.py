@@ -23,7 +23,7 @@ class DeepEnv:
     def get_obs(self) -> np.ndarray:
         pass
 
-    def step(self, action: int) -> tuple:
+    def step(self, action: int):
         pass
 
     def clone_stochastic():

@@ -1,36 +1,94 @@
 import pygame
 import random
+import numpy as np
+from contracts import DeepEnv
 
 
-class GridWorldLogic:
-    def __init__(self):
-        self.size = 5
+class GridWorldEnv(DeepEnv):
+    """
+    Grid World environment
+    The agent starts in the top left corner and must reach the bottom right corner.
+    The agent can move up, down, left or right.
+    If the agent reaches the bottom right corner, it receives a reward of 1.
+    If the agent reaches the losing square, it receives a reward of -1.
+    up = 0
+    down = 1
+    left = 2
+    right = 3
+    """
+    def __init__(self, size=10):
+        assert (size >= 3)
+        self.OBS_SIZE = size * size
+        self.ACTION_SIZE = 4
+        self.size = size
+        self.current_score = 0.0
         self.current_position = (0, 0)
         self.goal = (self.size - 1, self.size - 1)
-        self.obstacle = None
+        self.losing_square = None
         self.reset()
 
+    def generate_losing_square(self):
+        losing_square = (random.randint(0, self.size - 1), random.randint(0, self.size - 1))
+        while losing_square in [(0, 0), self.goal]:
+            losing_square = (
+                random.randint(0, self.size - 1),
+                random.randint(0, self.size - 1)
+            )
+        return losing_square
+    
     def reset(self):
         self.current_position = (0, 0)
-        self.obstacle = self.generate_obstacle()
+        self.losing_square = self.generate_losing_square()
+        self.current_score = 0.0
 
-    def generate_obstacle(self):
-        obstacle = (random.randint(0, self.size - 1), random.randint(0, self.size - 1))
-        while obstacle in [(0, 0), self.goal]:
-            obstacle = (
-                random.randint(0, self.size - 1),
-                random.randint(0, self.size - 1),
-            )
-        return obstacle
+    def print(self):
+        for i in range(self.size):
+            for j in range(self.size):
+                if (i, j) == self.current_position:
+                    print(1, end=" ")
+                elif (i, j) == self.goal:
+                    print(2, end=" ")
+                elif (i, j) == self.losing_square:
+                    print(-1, end=" ")
+                else:
+                    print(0, end=" ")
+            print()
+
+    def available_actions_mask(self) -> np.ndarray:
+        mask = np.zeros(self.ACTION_SIZE)
+
+        if self.current_position[0] > 0:
+            mask[0] = 1
+        if self.current_position[0] < self.size - 1:
+            mask[1] = 1
+        if self.current_position[1] > 0:
+            mask[2] = 1
+        if self.current_position[1] < self.size - 1:
+            mask[3] = 1
+
+        return mask
+
+    def get_score(self) -> float:
+        return self.current_score
+    
+    def get_game_over(self) -> bool:
+        return self.current_position == self.goal or self.current_position == self.losing_square
+    
+    def get_obs(self) -> np.ndarray:
+        obs = np.zeros((self.size, self.size))
+        obs[self.current_position] = 1
+        obs[self.goal] = 2
+        obs[self.losing_square] = -1
+        return obs.reshape(1, self.OBS_SIZE)
 
     def step(self, action):
-        if action == "up":
+        if action == 0:
             next_position = (self.current_position[0] - 1, self.current_position[1])
-        elif action == "down":
+        elif action == 1:
             next_position = (self.current_position[0] + 1, self.current_position[1])
-        elif action == "left":
+        elif action == 2:
             next_position = (self.current_position[0], self.current_position[1] - 1)
-        elif action == "right":
+        elif action == 3:
             next_position = (self.current_position[0], self.current_position[1] + 1)
 
         if (
@@ -44,23 +102,21 @@ class GridWorldLogic:
         self.current_position = next_position
 
         if self.current_position == self.goal:
-            reward = 1
-            done = True
-        elif self.current_position == self.obstacle:
-            reward = -1
-            done = True
+            self.current_score = 1.0
+        elif self.current_position == self.losing_square:
+            self.current_score = -1.0
         else:
-            reward = 0
-            done = False
-
-        return self.current_position, reward, done, {}
+            self.current_score = 0.0
+    
+    def clone_stochastic():
+        pass
 
 
 class GridWorldGUI:
     def __init__(self):
         pygame.init()
 
-        self.env = GridWorldLogic()
+        self.env = GridWorldEnv()
         self.cell_size = 100
         self.width = self.env.size * self.cell_size
         self.height = self.env.size * self.cell_size
@@ -73,10 +129,12 @@ class GridWorldGUI:
 
         # Define colors
         self.WHITE = (255, 255, 255)
-        self.MIDNIGHT_BLUE = (25, 25, 112)
+        self.GREEN_FOREST = (34, 139, 34)
+        self.GOAL_COLOR = (0, 0, 255, 128)
+        self.LOSING_COLOR = (255, 0, 0, 128)
 
     def draw_grid(self):
-        self.screen.fill(self.MIDNIGHT_BLUE)
+        self.screen.fill(self.GREEN_FOREST)
         for i in range(self.env.size):
             for j in range(self.env.size):
                 rect = pygame.Rect(
@@ -99,15 +157,15 @@ class GridWorldGUI:
         rect = pygame.Rect(
             j * self.cell_size, i * self.cell_size, self.cell_size, self.cell_size
         )
-        pygame.draw.rect(self.screen, (0, 255, 0, 128), rect)
+        pygame.draw.rect(self.screen, self.GOAL_COLOR, rect)
 
     def draw_obstacle(self):
-        if self.env.obstacle is not None:
-            i, j = self.env.obstacle
+        if self.env.losing_square is not None:
+            i, j = self.env.losing_square
             rect = pygame.Rect(
                 j * self.cell_size, i * self.cell_size, self.cell_size, self.cell_size
             )
-            pygame.draw.rect(self.screen, (255, 0, 0, 128), rect)
+            pygame.draw.rect(self.screen, self.LOSING_COLOR, rect)
 
     def draw_text(self, text, x, y):
         surface = self.font.render(text, True, self.WHITE)
@@ -139,9 +197,9 @@ class GridWorldGUI:
             self.width // 2 - 100, self.height // 2 + 50, 100, 50
         )
         quit_button = pygame.Rect(self.width // 2 + 10, self.height // 2 + 50, 100, 50)
-        pygame.draw.rect(self.screen, self.MIDNIGHT_BLUE, retry_button, 0)
+        pygame.draw.rect(self.screen, self.GREEN_FOREST, retry_button, 0)
         pygame.draw.rect(self.screen, self.WHITE, retry_button, 1)
-        pygame.draw.rect(self.screen, self.MIDNIGHT_BLUE, quit_button, 0)
+        pygame.draw.rect(self.screen, self.GREEN_FOREST, quit_button, 0)
         pygame.draw.rect(self.screen, self.WHITE, quit_button, 1)
         self.draw_text("Retry", retry_button.x + 20, retry_button.y + 10)
         self.draw_text("Quit", quit_button.x + 20, quit_button.y + 10)
@@ -167,18 +225,22 @@ class GridWorldGUI:
                     done = True
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP:
-                        action = "up"
+                        action = 0
                     elif event.key == pygame.K_DOWN:
-                        action = "down"
+                        action = 1
                     elif event.key == pygame.K_LEFT:
-                        action = "left"
+                        action = 2
                     elif event.key == pygame.K_RIGHT:
-                        action = "right"
+                        action = 3
                     else:
                         action = None
 
                     if action is not None:
-                        state, reward, done, _ = self.env.step(action)
+                        self.env.step(action)
+                        done = self.env.get_game_over()
+                        if done:
+                            self.draw_game_over_screen(self.env.get_score())
+                            self.env.reset()
 
             self.screen.fill((0, 0, 0))
             self.draw_grid()
@@ -188,11 +250,10 @@ class GridWorldGUI:
             pygame.display.flip()
             clock.tick(60)
 
-        if reward != 0:
-            self.draw_game_over_screen(reward)
-
         pygame.quit()
 
 
 if __name__ == "__main__":
     gui = GridWorldGUI().run()
+    # env = GridWorldEnv()
+    # env.print()
