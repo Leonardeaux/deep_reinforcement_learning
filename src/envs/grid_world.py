@@ -114,6 +114,7 @@ class GridWorldEnv(DeepEnv):
 
 class GridWorldGUI:
     def __init__(self):
+
         pygame.init()
 
         self.env = GridWorldEnv()
@@ -185,6 +186,7 @@ class GridWorldGUI:
                 self.game_over_text = self.game_over_font.render(
                     "You Lose.", True, self.WHITE
                 )
+
         self.screen.blit(
             self.game_over_text,
             (

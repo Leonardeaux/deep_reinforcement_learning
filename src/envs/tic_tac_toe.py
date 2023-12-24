@@ -13,7 +13,7 @@ class TicTacToeEnv(DeepEnv):
     """
     def __init__(self):
         self.OBS_SIZE = 3 * 3
-        self.ACTION_SIZE = 9
+        self.ACTION_SIZE = 3 * 3
         self.reset()
 
     def reset(self):
@@ -34,12 +34,19 @@ class TicTacToeEnv(DeepEnv):
             print()
 
     def available_actions_mask(self) -> np.ndarray:
-        return (self.board == 0).astype(int).flatten()
+        mask = np.array(np.zeros((3, 3)))
+        
+        for i in range(3):
+            for j in range(3):
+                if self.board[i, j] == 0:
+                    mask[i, j] = 1
+
+        return mask
     
     def get_score(self) -> float:
         if self.winner is None:
             return 0.0
-        return 1.0 if self.winner == self.current_player else -1.0
+        return 1.0 if self.winner == 0 else -1.0
 
     def get_game_over(self) -> bool:
         return self.done
@@ -48,21 +55,29 @@ class TicTacToeEnv(DeepEnv):
         return self.board.reshape(1, self.OBS_SIZE)
 
     def check_winner(self):
-        # Check rows, columns and diagonals for a win
         for i in range(3):
-            if abs(self.board[i, :].sum()) == 3 or abs(self.board[:, i].sum()) == 3:
+            if np.all(self.board[i, :] == 1) or np.all(self.board[:, i] == 1):
+                self.winner = 0
                 self.done = True
-                self.winner = self.current_player
                 return
-        if abs(np.diag(self.board).sum()) == 3 or abs(np.diag(np.fliplr(self.board)).sum()) == 3:
+            elif np.all(self.board[i, :] == -1) or np.all(self.board[:, i] == -1):
+                self.winner = 1
+                self.done = True
+                return
+
+        if np.all(np.diag(self.board) == 1) or np.all(np.diag(np.fliplr(self.board)) == 1):
+            self.winner = 0
             self.done = True
-            self.winner = self.current_player
+            return
+        elif np.all(np.diag(self.board) == -1) or np.all(np.diag(np.fliplr(self.board)) == -1):
+            self.winner = 1
+            self.done = True
             return
 
-        # Check for draw
-        if not np.any(self.board == 0):
-            self.done = True
+        if np.all(self.board != 0):
             self.winner = None
+            self.done = True
+            return
 
     def step(self, action):
         if self.done:
@@ -78,8 +93,10 @@ class TicTacToeEnv(DeepEnv):
         pass
 
 class TicTacToeGUI:
-    def __init__(self):
+    def __init__(self, is_opponent_random: bool = True):
         pygame.init()
+
+        self.is_opponent_random = is_opponent_random
 
         self.env = TicTacToeEnv()
         self.cell_size = 100
@@ -90,6 +107,7 @@ class TicTacToeGUI:
         pygame.display.set_caption("Tic Tac Toe")
 
         self.font = pygame.font.SysFont(None, 30)
+        self.game_over_font = pygame.font.SysFont(None, 50) 
 
         self.X_COLOR = (255, 0, 0)
         self.O_COLOR = (0, 0, 255)
@@ -118,15 +136,66 @@ class TicTacToeGUI:
         surface = self.font.render(text, True, self.BLACK)
         self.screen.blit(surface, (x, y))
 
+    def draw_game_over_screen(self, win):
+            background = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            background.fill((30, 30, 30, 128))
+            self.screen.blit(background, (0, 0))
+
+            match win:
+                case 1.0:
+                    self.game_over_text = self.game_over_font.render(
+                        "Cross Win !", True, self.WHITE
+                    )
+                case -1.0:
+                    self.game_over_text = self.game_over_font.render(
+                        "Rounds Win.", True, self.WHITE
+                    )
+                case 0.0:
+                    self.game_over_text = self.game_over_font.render(
+                        "It's a draw.", True, self.WHITE
+                    )
+            self.screen.blit(
+                self.game_over_text,
+                (
+                    self.width // 2 - self.game_over_text.get_width() // 2,
+                    self.height // 2 - self.game_over_text.get_height() // 2,
+                ),
+            )
+
+            retry_button = pygame.Rect(
+                self.width // 2 - 100, self.height // 2 + 50, 100, 50
+            )
+            quit_button = pygame.Rect(self.width // 2 + 10, self.height // 2 + 50, 100, 50)
+            pygame.draw.rect(self.screen, self.WHITE, retry_button, 0)
+            pygame.draw.rect(self.screen, self.WHITE, retry_button, 1)
+            pygame.draw.rect(self.screen, self.WHITE, quit_button, 0)
+            pygame.draw.rect(self.screen, self.WHITE, quit_button, 1)
+            self.draw_text("Retry", retry_button.x + 20, retry_button.y + 10)
+            self.draw_text("Quit", quit_button.x + 20, quit_button.y + 10)
+
+            pygame.display.flip()
+
+            while True:
+                for event in pygame.event.get():
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        mouse_pos = event.pos
+                        if retry_button.collidepoint(mouse_pos):
+                            self.env.reset()
+                            self.run()
+                        elif quit_button.collidepoint(mouse_pos):
+                            return
+
     def run(self):
         clock = pygame.time.Clock()
         done = False
+
+        player_turn = np.random.choice([True, False])
 
         while not done:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     done = True
-                elif event.type == pygame.MOUSEBUTTONDOWN:
+                elif event.type == pygame.MOUSEBUTTONDOWN and player_turn:
                     mouse_x, mouse_y = event.pos
                     col = mouse_x // self.cell_size
                     row = mouse_y // self.cell_size
@@ -134,6 +203,16 @@ class TicTacToeGUI:
 
                     try:
                         self.env.step(action)
+                        player_turn = False
+                    except ValueError as e:
+                        print(e)
+
+                elif not player_turn:
+                    mask = self.env.available_actions_mask()
+                    action = np.random.choice(np.arange(9), p=mask.flatten() / mask.sum())
+                    try:
+                        self.env.step(action)
+                        player_turn = True
                     except ValueError as e:
                         print(e)
 
@@ -142,12 +221,10 @@ class TicTacToeGUI:
             self.draw_symbols()
 
             if self.env.get_game_over():
-                winner_text = "Player X wins!" if self.env.get_score() == 1 else "Player O wins!" if self.env.get_score() == -1 else "It's a draw!"
-                self.draw_text(winner_text, 10, self.height // 2 - 30)
-                self.draw_text("Click to play again", 10, self.height // 2 + 10)
-
-                if pygame.mouse.get_pressed()[0]:
-                    self.env.reset()
+                print(self.env.get_score())
+                self.draw_game_over_screen(self.env.get_score())
+                self.env.reset()
+                player_turn = np.random.choice([True, False])
 
             pygame.display.flip()
             clock.tick(60)
@@ -157,3 +234,16 @@ class TicTacToeGUI:
 if __name__ == "__main__":
     gui = TicTacToeGUI()
     gui.run()
+    # while True:
+    #     env = TicTacToeEnv()
+    #     env.print()
+    #     done = False
+    #     while not done:
+    #         mask = env.available_actions_mask()
+    #         action = input("Action: ")
+    #         env.step(int(action))
+    #         env.print()
+    #         done = env.get_game_over()
+    #         if done:
+    #             print(env.get_score())
+    #     print("-----")
