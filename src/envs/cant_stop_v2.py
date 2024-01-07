@@ -13,6 +13,10 @@ def array_idx(array, value):
             return i
     return -1
 
+# Return a copy of the board
+
+
+
 # CONSTANTS
 PLAYER_PAWNS = 1
 OPPONENT_PAWNS = 2
@@ -23,10 +27,20 @@ CHECKPOINT_PAWNS_CURRENT_PLAYER = 6     # Current Player have a pawn on a checkp
 
 
 class CantStopEnv(DeepEnv):
-    def __init__(self, is_headless: bool = False):
+    def __init__(self, 
+                 is_headless: bool = False,
+                 is_debug: bool = False,
+                 player_is_random: bool = False, 
+                 opponent_is_random: bool = False):
+        
         self.is_headless = is_headless
+        self.is_debug = is_debug
+
         self.OBS_SIZE = 83 * 2
         self.ACTION_SIZE = 83
+
+        self.player_is_random = player_is_random
+        self.opponent_is_random = opponent_is_random
 
         self.reset()
 
@@ -37,9 +51,9 @@ class CantStopEnv(DeepEnv):
             [0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0],
@@ -49,9 +63,6 @@ class CantStopEnv(DeepEnv):
         self.current_player = 0 # 0 = player, 1 = opponent
         self.score = 0
         self.game_over = False
-
-        self.player_is_random = False
-        self.opponent_is_random = False
 
         self.player_pawns_won = 0
         self.opponent_pawns_won = 0
@@ -65,6 +76,11 @@ class CantStopEnv(DeepEnv):
         for idx, col in enumerate(mask):
             print(str(idx + 2), ":\t", col)
 
+
+    def copy_and_replace_board(self, saved_board):
+        for i in range(len(self.board)):
+            for j in range(len(self.board[i])):
+                self.board[i][j] = saved_board[i][j]
 
     def get_playable_index(self, action: int) -> int:
         pawn_to_search = 1 if self.current_player == 0 else 2
@@ -233,64 +249,42 @@ class CantStopEnv(DeepEnv):
 
         # Player turn
         if self.current_player == 0:
+            if self.board[action][playable_index + 1] == CHECKPOINT_OPPONENT:
+                self.board[action][playable_index + 1] = CHECKPOINT_PAWNS_CURRENT_PLAYER
+            else:
+                self.board[action][playable_index + 1] = PLAYER_PAWNS
+
             if playable_index == -1:    # Move from the start
-                self.board[action][0] = PLAYER_PAWNS
                 self.player_current_pawns -= 1
 
-            elif self.board[action][playable_index] == CHECKPOINT_PLAYER:
-                if self.board[action][playable_index + 1] == CHECKPOINT_OPPONENT:
-                    self.board[action][playable_index + 1] = CHECKPOINT_PAWNS_CURRENT_PLAYER
-                else:
-                    self.board[action][playable_index + 1] = PLAYER_PAWNS
-
+            elif self.board[action][playable_index] == CHECKPOINT_OPPONENT:
                 self.player_current_pawns -= 1
                 self.board[action][playable_index] = 0
 
             elif self.board[action][playable_index] == PLAYER_PAWNS:
-                if self.board[action][playable_index + 1] == CHECKPOINT_OPPONENT:
-                    self.board[action][playable_index + 1] = CHECKPOINT_PAWNS_CURRENT_PLAYER
-                else:
-                    self.board[action][playable_index + 1] = PLAYER_PAWNS
-
                 self.board[action][playable_index] = 0
 
             elif self.board[action][playable_index] == CHECKPOINT_PAWNS_CURRENT_PLAYER:
-                if self.board[action][playable_index + 1] == CHECKPOINT_OPPONENT:
-                    self.board[action][playable_index + 1] = CHECKPOINT_PAWNS_CURRENT_PLAYER
-                else:
-                    self.board[action][playable_index + 1] = PLAYER_PAWNS
-
                 self.board[action][playable_index] = CHECKPOINT_OPPONENT
 
         # Opponent turn
         else:
+            if self.board[action][playable_index + 1] == CHECKPOINT_PLAYER:
+                self.board[action][playable_index + 1] = CHECKPOINT_PAWNS_CURRENT_PLAYER
+            else:
+                self.board[action][playable_index + 1] = OPPONENT_PAWNS
+
             if playable_index == -1:    # Move from the start
-                self.board[action][0] = OPPONENT_PAWNS
                 self.opponent_current_pawns -= 1
 
             elif self.board[action][playable_index] == CHECKPOINT_PLAYER:
-                if self.board[action][playable_index + 1] == CHECKPOINT_PLAYER:
-                    self.board[action][playable_index + 1] = CHECKPOINT_PAWNS_CURRENT_PLAYER
-                else:
-                    self.board[action][playable_index + 1] = OPPONENT_PAWNS
-
                 self.opponent_current_pawns -= 1
                 self.board[action][playable_index] = 0
 
             elif self.board[action][playable_index] == OPPONENT_PAWNS:
-                if self.board[action][playable_index + 1] == CHECKPOINT_PLAYER:
-                    self.board[action][playable_index + 1] = CHECKPOINT_PAWNS_CURRENT_PLAYER
-                else:
-                    self.board[action][playable_index + 1] = OPPONENT_PAWNS
-
                 self.board[action][playable_index] = 0
 
             elif self.board[action][playable_index] == CHECKPOINT_PAWNS_CURRENT_PLAYER:
-                if self.board[action][playable_index + 1] == CHECKPOINT_PLAYER:
-                    self.board[action][playable_index + 1] = CHECKPOINT_PAWNS_CURRENT_PLAYER
-                else:
-                    self.board[action][playable_index + 1] = OPPONENT_PAWNS
-
                 self.board[action][playable_index] = CHECKPOINT_PLAYER
     
 
@@ -300,22 +294,25 @@ class CantStopEnv(DeepEnv):
 
     def play_turn(self):
         turn_over = False
-        saved_board = self.board
+        saved_board = [row[:] for row in self.board]
 
         # Player turn
         if self.current_player == 0:
 
             while not turn_over:
-                if not self.is_headless: print(f"Player turn: {self.player_current_pawns}")
+                if not self.is_headless: self.print()
+
+                if not self.is_headless: print(f"Player turn: {self.player_current_pawns} pieces left")
                 dices = self.roll_dices()
 
                 actions_mask = self.available_actions_mask()
                 
-                self.print_mask(actions_mask)
+                if self.is_debug: self.print_mask(actions_mask)
 
                 available_combinations = self.get_available_combinations(dices, actions_mask)
 
                 if len(available_combinations) == 0:
+                    if not self.is_headless: print(f"No available combinations, turn over ({str(dices)})")
                     turn_over = True
                     self.board = saved_board
                     break
@@ -357,23 +354,23 @@ class CantStopEnv(DeepEnv):
 
                 if self.game_over:
                     turn_over = True
-
-                self.print() # Debug
-                # print(f"\nPieces:  {str(self.player_current_pawns)} - Piece won {str(self.player_pawns_won)}") # Debug
 
         # Opponent turn   
         else:
             while not turn_over:
-                if not self.is_headless: print(f"Opponent turn: {self.opponent_current_pawns}")
+                if not self.is_headless: self.print()
+
+                if not self.is_headless: print(f"Opponent turn: {self.opponent_current_pawns} pieces left")
                 dices = self.roll_dices()
 
                 actions_mask = self.available_actions_mask()
 
-                self.print_mask(actions_mask)
+                if self.is_debug: self.print_mask(actions_mask)
 
                 available_combinations = self.get_available_combinations(dices, actions_mask)
 
                 if len(available_combinations) == 0:
+                    if not self.is_headless: print(f"No available combinations, turn over ({str(dices)})")
                     turn_over = True
                     self.board = saved_board
                     break
@@ -415,20 +412,30 @@ class CantStopEnv(DeepEnv):
 
                 if self.game_over:
                     turn_over = True
-
-                self.print() # Debug
-                # print(f"\nPieces:  {str(self.opponent_current_pawns)} - Piece won {str(self.opponent_pawns_won)}") # Debug
 
 
     def play(self):
 
         while not self.game_over:
             self.play_turn()
-            print("Changement de joueur")
             self.current_player = 1 - self.current_player
 
         return self.score
 
 
-game = CantStopEnv()
-game.play()
+game = CantStopEnv(is_headless=False,
+                   is_debug=False,
+                   player_is_random=False, 
+                   opponent_is_random=False)
+
+import time
+
+start = time.time()
+
+for i in range(100):
+    print(str(game.play()) + ' ' + str(i))
+    game.reset()
+
+end = time.time()
+
+print(end - start)
