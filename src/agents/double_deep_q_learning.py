@@ -23,10 +23,10 @@ def get_model(obs_size, action_size, learning_rate):
 def get_model_huber(obs_size, action_size, learning_rate):
     init = HeUniform()
     model = Sequential()
-    model.add(Dense(24, input_shape=obs_size, activation='relu', kernel_initializer=init))
+    model.add(Dense(24, input_dim=obs_size, activation='relu', kernel_initializer=init))
     model.add(Dense(12, activation='relu', kernel_initializer=init))
     model.add(Dense(action_size, activation='linear', kernel_initializer=init))
-    model.compile(loss=Huber(), optimizer=Adam(lr=learning_rate),
+    model.compile(loss=Huber(), optimizer=Adam(learning_rate=learning_rate),
                   metrics=['accuracy'])
 
     return model
@@ -46,8 +46,8 @@ class DoubleDeepQLearningAgent(DeepAgent):
         self.epsilon = epsilon
         self.max_steps = max_steps
 
-        self.model = get_model(self.env.OBS_SIZE, self.env.ACTION_SIZE, self.learning_rate)
-        self.target_model = get_model(self.env.OBS_SIZE, self.env.ACTION_SIZE, self.learning_rate)
+        self.model = get_model_huber(self.env.OBS_SIZE, self.env.ACTION_SIZE, self.learning_rate)
+        self.target_model = get_model_huber(self.env.OBS_SIZE, self.env.ACTION_SIZE, self.learning_rate)
 
         self.target_model.set_weights(self.model.get_weights())
 
@@ -55,7 +55,7 @@ class DoubleDeepQLearningAgent(DeepAgent):
         if np.random.rand() <= epsilon:
             return self.env.sample()
 
-        q_values = self.model.predict(state) * action_mask
+        q_values = self.target_model.predict(state) * action_mask
         min_q_value = np.min(q_values) - 1
         q_values_adjusted = q_values * action_mask + (1 - action_mask) * min_q_value
 
@@ -106,7 +106,7 @@ class DoubleDeepQLearningAgent(DeepAgent):
 
                 state = np.reshape(next_state, [1, self.env.OBS_SIZE])
 
-            if step % 10 == 0:
+            if step % 100 == 0:
                 self.target_model.set_weights(self.model.get_weights())
 
             print(f"Episode {e + 1}/{self.episodes}, score: {score}")
@@ -123,4 +123,40 @@ class DoubleDeepQLearningAgent(DeepAgent):
         return scores, time_per_episode
 
     def test(self):
-        pass
+        scores = []
+        wins = 0
+        looses = 0
+        draws = 0
+
+        for e in range(self.episodes):
+            state = self.env.reset()
+            state = np.reshape(state, [1, self.env.OBS_SIZE])
+            done = False
+            score = 0
+            step = 0
+
+            while not done and step < self.max_steps:
+                action_mask = np.reshape(self.env.available_actions_mask(), [1, self.env.ACTION_SIZE])
+
+                action = self.choose_action(state, epsilon=self.epsilon, action_mask=action_mask)
+
+                next_state, reward, done = self.env.step(action)
+                next_state = np.reshape(next_state, [1, self.env.OBS_SIZE])
+
+                score += reward
+                step += 1
+
+                state = np.reshape(next_state, [1, self.env.OBS_SIZE])
+
+            wins += 1 if self.env.get_game_result_status() == 1 else 0
+            looses += 1 if self.env.get_game_result_status() == 0 else 0
+            draws += 1 if self.env.get_game_result_status() == 0.5 else 0
+
+            print(f"Episode {e + 1}/{self.episodes}, score: {score}")
+            scores.append(score)
+
+        average_score = np.mean(scores)
+        print(f"Winrate: {round((wins / self.episodes) * 100, 2)}%")
+        print(f"Loose rate: {round((looses / self.episodes) * 100, 2)}")
+        print(f"Draw rate: {round((draws / self.episodes) * 100, 2)}")
+        print(f"Moyenne des scores sur {self.episodes} épisodes: {average_score}")

@@ -1,11 +1,14 @@
 import numpy as np
+import time
+import random
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
-from collections import deque
-from tqdm import tqdm
+from tensorflow.keras.initializers import HeUniform
+from tensorflow.keras.losses import Huber
 from src.agents.contracts import DeepAgent
 from src.envs.contracts import DeepEnv
+from collections import deque
 
 
 def get_model(obs_size, action_size, learning_rate):
@@ -19,25 +22,47 @@ def get_model(obs_size, action_size, learning_rate):
     return model
 
 
-class DoubleDeepQLearningExpRepAgent(DeepAgent):
+def get_model_huber(obs_size, action_size, learning_rate):
+    init = HeUniform()
+    model = Sequential()
+    model.add(Dense(24, input_shape=obs_size, activation='relu', kernel_initializer=init))
+    model.add(Dense(12, activation='relu', kernel_initializer=init))
+    model.add(Dense(action_size, activation='linear', kernel_initializer=init))
+    model.compile(loss=Huber(), optimizer=Adam(lr=learning_rate),
+                  metrics=['accuracy'])
+
+    return model
+
+
+class DoubleDeepQLearningAgentER(DeepAgent):
     def __init__(self, env: DeepEnv,
                  episodes: int = 100,
                  learning_rate: float = 0.001,
                  gamma: float = 0.95,
-                 max_steps: int = 1000):
+                 epsilon: float = 0.1,
+                 max_steps: int = 1000,
+                 max_memory: int = 2000,
+                 batch_size: int = 64):
         super().__init__(env)
         self.learning_rate = learning_rate
         self.episodes = episodes
         self.gamma = gamma
+        self.epsilon = epsilon
         self.max_steps = max_steps
 
-        self.model = get_model(self.env.OBS_SIZE, self.env.ACTION_SIZE, self.learning_rate)
+        self.replay_memory = deque(maxlen=max_memory)
+        self.batch_size = batch_size
+
+        self.model = get_model_huber(self.env.OBS_SIZE, self.env.ACTION_SIZE, self.learning_rate)
+        self.target_model = get_model_huber(self.env.OBS_SIZE, self.env.ACTION_SIZE, self.learning_rate)
+
+        self.target_model.set_weights(self.model.get_weights())
 
     def choose_action(self, state, epsilon, action_mask):
         if np.random.rand() <= epsilon:
             return self.env.sample()
 
-        q_values = self.model.predict(state) * action_mask
+        q_values = self.target_model.predict(state) * action_mask
         min_q_value = np.min(q_values) - 1
         q_values_adjusted = q_values * action_mask + (1 - action_mask) * min_q_value
 
@@ -46,20 +71,83 @@ class DoubleDeepQLearningExpRepAgent(DeepAgent):
     def act(self) -> int:
         pass
 
-    def train_model(self, state, action, reward, next_state, done):
-        target = reward
+    def train_model(self):
 
-        if not done:
-            next_q_values = self.model.predict(next_state)
+        if len(self.replay_memory) < self.batch_size:
+            return
 
-            target = reward + self.gamma * np.amax(next_q_values)
-        target_f = self.model.predict(state)
-        target_f[0][action] = target
+        mini_batch = random.sample(self.replay_memory, self.batch_size)
+        current_states = np.array([transition[0] for transition in mini_batch])
+        current_qs_list = self.model.predict(current_states)
+        new_current_states = np.array([transition[3] for transition in mini_batch])
+        future_qs_list = self.target_model.predict(new_current_states)
 
-        self.model.fit(state, target_f, epochs=1, verbose=0)
+        X = []
+        Y = []
+        for index, (observation, action, reward, new_observation, done) in enumerate(mini_batch):
+            if not done:
+                max_future_q = reward + self.gamma * np.max(future_qs_list[index])
+            else:
+                max_future_q = reward
+
+            current_qs = current_qs_list[index]
+            current_qs[action] = (1 - self.learning_rate) * current_qs[action] + self.learning_rate * max_future_q
+
+            X.append(observation)
+            Y.append(current_qs)
+
+        self.model.fit(np.array(X), np.array(Y), batch_size=self.batch_size, verbose=0, shuffle=True)
 
     def train(self):
         scores = []
+        time_per_episode = []
+
+        for e in range(self.episodes):
+            start = time.time()
+            state = self.env.reset()
+            state = np.reshape(state, [1, self.env.OBS_SIZE])
+            done = False
+            score = 0
+            step = 0
+
+            while not done and step < self.max_steps:
+                action_mask = np.reshape(self.env.available_actions_mask(), [1, self.env.ACTION_SIZE])
+
+                action = self.choose_action(state, epsilon=self.epsilon, action_mask=action_mask)
+
+                next_state, reward, done = self.env.step(action)
+                next_state = np.reshape(next_state, [1, self.env.OBS_SIZE])
+
+                self.replay_memory.append((state, action, reward, next_state, done))
+
+                self.train_model()
+
+                score += reward
+                step += 1
+
+                state = np.reshape(next_state, [1, self.env.OBS_SIZE])
+
+            if step % 10 == 0:
+                self.target_model.set_weights(self.model.get_weights())
+
+            print(f"Episode {e + 1}/{self.episodes}, score: {score}")
+            scores.append(score)
+
+            end = time.time()
+            time_per_episode.append(end - start)
+
+        average_score = np.mean(scores)
+        print(f"Moyenne des scores sur {self.episodes} épisodes: {average_score}")
+        average_time = np.mean(time_per_episode)
+        print(f"Temps moyen d'entraînement par épisode : {round(average_time, 2)} secondes.")
+
+        return scores, time_per_episode
+
+    def test(self):
+        scores = []
+        wins = 0
+        looses = 0
+        draws = 0
 
         for e in range(self.episodes):
             state = self.env.reset()
@@ -71,23 +159,25 @@ class DoubleDeepQLearningExpRepAgent(DeepAgent):
             while not done and step < self.max_steps:
                 action_mask = np.reshape(self.env.available_actions_mask(), [1, self.env.ACTION_SIZE])
 
-                action = self.choose_action(state, epsilon=0.2, action_mask=action_mask)
+                action = self.choose_action(state, epsilon=self.epsilon, action_mask=action_mask)
 
                 next_state, reward, done = self.env.step(action)
                 next_state = np.reshape(next_state, [1, self.env.OBS_SIZE])
 
                 score += reward
-                self.train_model(state, action, reward, next_state, done)
+                step += 1
 
                 state = np.reshape(next_state, [1, self.env.OBS_SIZE])
 
-                step += 1
+            wins += 1 if self.env.get_game_result_status() == 1 else 0
+            looses += 1 if self.env.get_game_result_status() == 0 else 0
+            draws += 1 if self.env.get_game_result_status() == 0.5 else 0
 
             print(f"Episode {e + 1}/{self.episodes}, score: {score}")
             scores.append(score)
 
         average_score = np.mean(scores)
+        print(f"Winrate: {round((wins / self.episodes) * 100, 2)}%")
+        print(f"Loose rate: {round((looses / self.episodes) * 100, 2)}")
+        print(f"Draw rate: {round((draws / self.episodes) * 100, 2)}")
         print(f"Moyenne des scores sur {self.episodes} épisodes: {average_score}")
-
-    def test(self):
-        pass
