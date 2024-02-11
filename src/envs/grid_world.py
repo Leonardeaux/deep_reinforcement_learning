@@ -1,7 +1,7 @@
 import pygame
 import random
 import numpy as np
-from contracts import DeepEnv
+from src.envs.contracts import DeepEnv
 
 
 class GridWorldEnv(DeepEnv):
@@ -16,6 +16,7 @@ class GridWorldEnv(DeepEnv):
     left = 2
     right = 3
     """
+
     def __init__(self, size=10):
         assert (size >= 3)
         self.OBS_SIZE = size * size
@@ -26,20 +27,26 @@ class GridWorldEnv(DeepEnv):
         self.goal = (self.size - 1, self.size - 1)
         self.losing_square = None
         self.reset()
+        self.nb_player = 1
 
-    def generate_losing_square(self):
-        losing_square = (random.randint(0, self.size - 1), random.randint(0, self.size - 1))
-        while losing_square in [(0, 0), self.goal]:
-            losing_square = (
-                random.randint(0, self.size - 1),
-                random.randint(0, self.size - 1)
-            )
+    def generate_losing_square(self, is_random: bool = False):
+        if is_random:
+            losing_square = (random.randint(0, self.size - 1), random.randint(0, self.size - 1))
+            while losing_square in [(0, 0), self.goal]:
+                losing_square = (
+                    random.randint(0, self.size - 1),
+                    random.randint(0, self.size - 1)
+                )
+        else:
+            losing_square = (0, self.size - 1)
         return losing_square
-    
+
     def reset(self):
         self.current_position = (0, 0)
         self.losing_square = self.generate_losing_square()
         self.current_score = 0.0
+
+        return self.get_obs()
 
     def print(self):
         for i in range(self.size):
@@ -68,20 +75,29 @@ class GridWorldEnv(DeepEnv):
 
         return mask
 
+    def available_actions(self) -> np.ndarray:
+        return np.arange(self.ACTION_SIZE)[self.available_actions_mask().flatten() == 1]
+
+    def sample(self):
+        available_actions = np.arange(self.ACTION_SIZE)[self.available_actions_mask().flatten() == 1]
+        return np.random.choice(available_actions)
+
     def get_score(self) -> float:
         return self.current_score
-    
+
     def get_game_over(self) -> bool:
         return self.current_position == self.goal or self.current_position == self.losing_square
-    
+
     def get_obs(self) -> np.ndarray:
         obs = np.zeros((self.size, self.size))
         obs[self.current_position] = 1
         obs[self.goal] = 2
         obs[self.losing_square] = -1
-        return obs.reshape(1, self.OBS_SIZE)
+        return obs.reshape(self.OBS_SIZE)
 
     def step(self, action):
+        next_position = None
+
         if action == 0:
             next_position = (self.current_position[0] - 1, self.current_position[1])
         elif action == 1:
@@ -91,12 +107,13 @@ class GridWorldEnv(DeepEnv):
         elif action == 3:
             next_position = (self.current_position[0], self.current_position[1] + 1)
 
-        if (
-            next_position[0] < 0
-            or next_position[0] >= self.size
-            or next_position[1] < 0
-            or next_position[1] >= self.size
-        ):
+        if next_position is None:
+            raise ValueError(f"Invalid action: {action}")
+
+        if next_position[0] < 0 \
+                or next_position[0] >= self.size \
+                or next_position[1] < 0 \
+                or next_position[1] >= self.size:
             next_position = self.current_position
 
         self.current_position = next_position
@@ -106,10 +123,27 @@ class GridWorldEnv(DeepEnv):
         elif self.current_position == self.losing_square:
             self.current_score = -1.0
         else:
-            self.current_score = 0.0
-    
-    def clone_stochastic():
-        pass
+            self.current_score = -0.1
+
+        return self.get_obs(), self.current_score, self.get_game_over()
+
+    def get_game_result_status(self):
+        if self.get_game_over():
+            if self.current_position == self.goal:
+                return 1
+            else:
+                return 0
+
+        raise ValueError("Game is not over")
+
+    def step_play(self, action):
+        return self.step(action)
+
+    def clone_stochastic(self):
+        return GridWorldEnv(self.size)
+
+    def current_position_to_state(self):
+        return self.current_position[0] * self.size + self.current_position[1]
 
 
 class GridWorldGUI:
@@ -253,9 +287,3 @@ class GridWorldGUI:
             clock.tick(60)
 
         pygame.quit()
-
-
-if __name__ == "__main__":
-    gui = GridWorldGUI().run()
-    # env = GridWorldEnv()
-    # env.print()

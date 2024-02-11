@@ -3,7 +3,9 @@ import numpy as np
 
 class DeepEnv:
     def __init__(self, OBS_SIZE, ACTION_SIZE) -> None:
-        pass
+        self.OBS_SIZE = OBS_SIZE
+        self.ACTION_SIZE = ACTION_SIZE
+        self.nb_player = None
 
     def reset(self):
         pass
@@ -26,5 +28,17 @@ class DeepEnv:
     def step(self, action: int):
         pass
 
-    def clone_stochastic():
+    def step_play(self, action: int):
+        pass
+
+    def clone_stochastic(self):
+        pass
+
+    def available_actions(self):
+        pass
+
+    def sample(self):
+        pass
+
+    def get_game_result_status(self):
         pass

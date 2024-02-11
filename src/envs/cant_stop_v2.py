@@ -2,8 +2,8 @@ import numpy as np
 import random
 
 from numpy import ndarray
-from contracts import DeepEnv
-from Player import Player
+from envs.contracts import DeepEnv
+from envs.Player import Player
 
 
 #Return index of value in array
@@ -423,19 +423,21 @@ class CantStopEnv(DeepEnv):
         return self.score
 
 
-game = CantStopEnv(is_headless=False,
-                   is_debug=False,
-                   player_is_random=False, 
-                   opponent_is_random=False)
+if __name__ == '__main__':
 
-import time
+    game = CantStopEnv(is_headless=False,
+                    is_debug=False,
+                    player_is_random=False, 
+                    opponent_is_random=False)
 
-start = time.time()
+    import time
 
-for i in range(100):
-    print(str(game.play()) + ' ' + str(i))
-    game.reset()
+    start = time.time()
 
-end = time.time()
+    for i in range(100):
+        print(str(game.play()) + ' ' + str(i))
+        game.reset()
 
-print(end - start)
+    end = time.time()
+
+    print(end - start)

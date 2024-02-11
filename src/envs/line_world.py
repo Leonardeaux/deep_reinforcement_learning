@@ -1,6 +1,6 @@
 import pygame
 import numpy as np
-from contracts import DeepEnv
+from envs.contracts import DeepEnv
 
 
 class LineWorldEnv(DeepEnv):
