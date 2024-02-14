@@ -4,7 +4,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
 import random
-from tqdm import tqdm
+from src.plot_management import create_plots
 from src.agents.contracts import DeepAgent
 from src.envs.contracts import DeepEnv
 
@@ -21,10 +21,12 @@ class RandomAgent(DeepAgent):
         pass
 
     def test(self):
-        scores = []
         wins = 0
         looses = 0
-        draws = 0
+        all_scores = []
+        all_win_rates = []
+        all_loss_rates = []
+        episode_numbers = list(range(self.episodes))
 
         for e in range(self.episodes):
             state = self.env.reset()
@@ -39,13 +41,17 @@ class RandomAgent(DeepAgent):
                 score += reward
 
             print(f"Episode {e + 1}/{self.episodes}, score: {score}")
-            scores.append(score)
+            all_scores.append(score)
+
             wins += 1 if self.env.get_game_result_status() == 1 else 0
             looses += 1 if self.env.get_game_result_status() == 0 else 0
-            draws += 1 if self.env.get_game_result_status() == 0.5 else 0
 
-        print(f"Winrate: {wins/self.episodes}")
-        print(f"Loose rate: {looses/self.episodes}")
-        print(f"Draw rate: {draws/self.episodes}")
-        average_score = np.mean(scores)
+            win_rate = wins / (e + 1)
+            all_win_rates.append(win_rate)
+            loss_rate = looses / (e + 1)
+            all_loss_rates.append(loss_rate)
+
+        average_score = np.mean(all_scores)
         print(f"Moyenne des scores sur {self.episodes} épisodes: {average_score}")
+
+        create_plots(episode_numbers, all_scores, all_win_rates, all_loss_rates)

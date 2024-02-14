@@ -122,8 +122,9 @@ def main():
             else:
                 # Exploit best known action
                 # model dims are (batch, env.observation_space.n)
+                print("observation:", observation)
                 encoded_reshaped = observation.reshape([1, observation.shape[0]])
-
+                print("encoded_reshaped:", encoded_reshaped)
                 predicted = model.predict(encoded_reshaped).flatten()
                 action = np.argmax(predicted)
 

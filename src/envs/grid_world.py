@@ -133,8 +133,8 @@ class GridWorldEnv(DeepEnv):
                 return 1
             else:
                 return 0
-
-        raise ValueError("Game is not over")
+        else:
+            return 0
 
     def step_play(self, action):
         return self.step(action)

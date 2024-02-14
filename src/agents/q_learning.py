@@ -1,8 +1,10 @@
 import numpy as np
 import time
+from src.plot_management import create_plots, create_score_plot
 from tqdm import tqdm
 from src.agents.contracts import DeepAgent
 from src.envs.contracts import DeepEnv
+import matplotlib.pyplot as plt
 
 
 class QLearningAgent(DeepAgent):
@@ -70,6 +72,7 @@ class QLearningAgent(DeepAgent):
     def train(self):
         scores = []
         time_per_episode = []
+        moving_average = []
 
         for e in tqdm(range(self.episodes)):
             start = time.time()
@@ -92,18 +95,26 @@ class QLearningAgent(DeepAgent):
             end = time.time()
             time_per_episode.append(end - start)
 
+            moving_average.append(np.mean(scores[-100:]))
+
         average_score = np.mean(scores)
         print(f"Moyenne des scores sur {self.episodes} épisodes: {average_score}")
+
         average_time = np.mean(time_per_episode)
         print(f"Temps moyen d'entraînement par épisode : {round(average_time, 2)} secondes.")
+
+        create_score_plot("Train", scores, moving_average)
 
         return scores, time_per_episode
 
     def test(self):
-        scores = []
         wins = 0
         looses = 0
-        draws = 0
+        all_scores = []
+        all_win_rates = []
+        all_loss_rates = []
+        episode_numbers = list(range(self.episodes))
+        moving_average = []
 
         for e in tqdm(range(self.episodes)):
             state = self.env.reset()
@@ -118,15 +129,22 @@ class QLearningAgent(DeepAgent):
                 step += 1
                 score += reward
 
+            print(f"Episode {e + 1}/{self.episodes}, score: {score}")
+            all_scores.append(score)
+
             wins += 1 if self.env.get_game_result_status() == 1 else 0
             looses += 1 if self.env.get_game_result_status() == 0 else 0
-            draws += 1 if self.env.get_game_result_status() == 0.5 else 0
 
-            print(f"Episode {e + 1}/{self.episodes}, score: {score}")
-            scores.append(score)
+            win_rate = wins / (e + 1)
+            all_win_rates.append(win_rate)
+            loss_rate = looses / (e + 1)
+            all_loss_rates.append(loss_rate)
 
-        average_score = np.mean(scores)
-        print(f"Winrate: {round((wins / self.episodes) * 100, 2)}%")
-        print(f"Loose rate: {round((looses / self.episodes) * 100, 2)}")
-        print(f"Draw rate: {round((draws / self.episodes) * 100, 2)}")
+            moving_average.append(np.mean(all_scores[-100:]))
+
+        average_score = np.mean(all_scores)
         print(f"Moyenne des scores sur {self.episodes} épisodes: {average_score}")
+
+        create_plots(episode_numbers, all_win_rates, all_loss_rates)
+
+        create_score_plot("Test", all_scores, moving_average)
