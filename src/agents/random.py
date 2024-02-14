@@ -4,7 +4,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
 import random
-from src.plot_management import create_plots
+from src.plot_management import create_plots, create_score_plot
 from src.agents.contracts import DeepAgent
 from src.envs.contracts import DeepEnv
 
@@ -27,6 +27,7 @@ class RandomAgent(DeepAgent):
         all_win_rates = []
         all_loss_rates = []
         episode_numbers = list(range(self.episodes))
+        moving_average = []
 
         for e in range(self.episodes):
             state = self.env.reset()
@@ -51,7 +52,11 @@ class RandomAgent(DeepAgent):
             loss_rate = looses / (e + 1)
             all_loss_rates.append(loss_rate)
 
+            moving_average.append(np.mean(all_scores[-100:]))
+
         average_score = np.mean(all_scores)
         print(f"Moyenne des scores sur {self.episodes} épisodes: {average_score}")
 
-        create_plots(episode_numbers, all_scores, all_win_rates, all_loss_rates)
+        create_plots(episode_numbers, all_win_rates, all_loss_rates)
+
+        create_score_plot("Test", all_scores, moving_average)
