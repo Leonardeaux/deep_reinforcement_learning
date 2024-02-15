@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import random
+from tqdm import tqdm
 from src.plot_management import create_plots, create_score_plot
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
@@ -153,15 +154,16 @@ class DoubleDeepQLearningAgentER(DeepAgent):
         return scores, time_per_episode
 
     def test(self):
+        episodes = 500
         wins = 0
         looses = 0
         all_scores = []
         all_win_rates = []
         all_loss_rates = []
-        episode_numbers = list(range(self.episodes))
+        episode_numbers = list(range(episodes))
         moving_average = []
 
-        for e in range(self.episodes):
+        for e in tqdm(range(episodes)):
             state = self.env.reset()
             state = state.flatten()
             done = False
@@ -181,7 +183,7 @@ class DoubleDeepQLearningAgentER(DeepAgent):
 
                 state = next_state.flatten()
 
-            print(f"Episode {e + 1}/{self.episodes}, score: {score}")
+            print(f"Episode {e + 1}/{episodes}, score: {score}")
             all_scores.append(score)
 
             wins += 1 if self.env.get_game_result_status() == 1 else 0
@@ -195,7 +197,7 @@ class DoubleDeepQLearningAgentER(DeepAgent):
             moving_average.append(np.mean(all_scores[-100:]))
 
         average_score = np.mean(all_scores)
-        print(f"Moyenne des scores sur {self.episodes} épisodes: {average_score}")
+        print(f"Moyenne des scores sur {episodes} épisodes: {average_score}")
         print(f"Win rate: {all_win_rates[-1]}")
         print(f"Loss rate: {all_loss_rates[-1]}")
 
