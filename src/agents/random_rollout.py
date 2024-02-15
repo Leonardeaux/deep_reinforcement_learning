@@ -1,5 +1,7 @@
 import random
 import numpy as np
+import time
+from src.plot_management import create_plots, create_score_plot
 from matplotlib import pyplot as plt
 from typing import Tuple, Any
 from copy import deepcopy
@@ -128,19 +130,24 @@ class RandomRolloutAgent(DeepAgent):
         pass
 
     def train(self):
-        rewards = []
+        wins = 0
+        looses = 0
+        time_per_episode = []
+        all_scores = []
+        all_win_rates = []
+        all_loss_rates = []
+        episode_numbers = list(range(self.episodes))
         moving_average = []
 
         for e in range(self.episodes):
-            reward_e = 0
+            start = time.time()
+            score = 0
             principal_env = self.principal_env
             obs = principal_env.reset()
             done = False
 
             new_game = deepcopy(principal_env)
             mytree = Node(new_game, False, 0, obs, 0)
-
-            print('Episode: ', e + 1)
 
             while not done:
                 for _ in range(self.max_depth):
@@ -153,7 +160,7 @@ class RandomRolloutAgent(DeepAgent):
                 obs, reward, done = principal_env.step_play(action)
 
                 if done:
-                    reward_e = reward_e + reward
+                    score += reward
                     break
 
                 if principal_env.nb_player > 1:
@@ -162,17 +169,38 @@ class RandomRolloutAgent(DeepAgent):
                     new_game = deepcopy(principal_env)
                     mytree = Node(new_game, new_game.get_game_over(), mytree, obs, mytree.action_index)
 
-                reward_e = reward_e + reward
+                score += reward
 
-            print("Reward de l'épisode: ", reward_e)
+            end = time.time()
+            time_per_episode.append(end - start)
 
-            rewards.append(reward_e)
-            moving_average.append(np.mean(rewards[-100:]))
+            print(f"Episode {e + 1}/{self.episodes}, score: {score}")
+            all_scores.append(score)
 
-        plt.plot(rewards)
-        plt.plot(moving_average)
-        plt.show()
-        print('Reward total moyen: ' + str(np.mean(rewards)))
+            wins += 1 if self.principal_env.get_game_result_status() == 1 else 0
+            looses += 1 if self.principal_env.get_game_result_status() == 0 else 0
 
-    def test(self, num_simulation: int = 1000):
+            win_rate = wins / (e + 1)
+            all_win_rates.append(win_rate)
+            loss_rate = looses / (e + 1)
+            all_loss_rates.append(loss_rate)
+
+            moving_average.append(np.mean(all_scores[-100:]))
+
+        average_score = np.mean(all_scores)
+        print(f"Moyenne des scores sur {self.episodes} épisodes: {average_score}")
+
+        average_time = np.mean(time_per_episode)
+        print(f"Temps moyen d'entraînement par épisode : {round(average_time, 2)} secondes.")
+
+        print(f"Win rate: {all_win_rates[-1]}")
+        print(f"Loss rate: {all_loss_rates[-1]}")
+
+        create_plots(episode_numbers, all_win_rates, all_loss_rates)
+
+        create_score_plot("Act", all_scores, moving_average)
+
+        return all_scores, time_per_episode
+
+    def test(self):
         pass

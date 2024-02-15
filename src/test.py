@@ -27,16 +27,18 @@ def main():
     env = TicTacToeEnv()
     env2 = BalloonPopEnv()
     env3 = GridWorldEnv(size=5)
-    episodes = 2000
+    episodes = 500
 
     # agent = QLearningAgent(env, episodes=episodes, alpha=0.1, gamma=0.99, epsilon=0.1)
-    agent = DeepQLearningAgent(env, episodes=episodes, learning_rate=0.001)
+    # agent = DeepQLearningAgent(env, episodes=episodes, learning_rate=0.001)
     # agent = DoubleDeepQLearningAgent(env, episodes=episodes, learning_rate=0.001, gamma=0.99, epsilon=0.2)
     # agent = DoubleDeepQLearningAgentER(env, episodes=episodes, learning_rate=0.001)
     # agent = DoubleDeepQLearningAgentPrioritizedER(env, episodes=episodes, learning_rate=0.001)
+    # agent = RandomRolloutAgent(env, episodes=episodes)
+    agent = MCTSAgent(env, episodes=episodes)
 
     scores, time_per_episode = agent.train()
-    agent.test()
+    # agent.test()
 
     print()
     print("---------------------------------------------------------------------------------")

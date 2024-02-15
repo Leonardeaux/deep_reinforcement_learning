@@ -152,6 +152,9 @@ class BalloonPopEnv(DeepEnv):
 
         return 0
 
+    def get_score(self):
+        return self.calculate_reward()
+
     def get_game_result_status(self):
         if self.get_game_over():
             if self.get_score() > 160:
