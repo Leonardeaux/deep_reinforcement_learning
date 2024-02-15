@@ -188,9 +188,9 @@ class DoubleDeepQLearningAgentPrioritizedER(DeepAgent):
 
     def _calculate_priority(self, state, action, reward, next_state, done):
         """Calculate the priority value for the given transition."""
-        _, _, max_Q_next_state = self.target_model.predict([next_state])
+        _, _, max_Q_next_state = self.target_model.predict([next_state], verbose=0)
         target_Q = reward + (not done) * self.gamma * np.amax(max_Q_next_state)
-        current_Q = self.model.predict([state])[:, action]
+        current_Q = self.model.predict([state], verbose=0)[:, action]
         error = abs(target_Q - current_Q)
         return (error + 1) ** 0.5
 

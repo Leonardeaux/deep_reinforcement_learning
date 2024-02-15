@@ -65,7 +65,7 @@ class DoubleDeepQLearningAgentER(DeepAgent):
 
         state_reshaped = state.reshape([1, state.shape[0]])
 
-        q_values = self.target_model.predict(state_reshaped) * action_mask
+        q_values = self.target_model.predict(state_reshaped, verbose=0) * action_mask
         min_q_value = np.min(q_values) - 1
         q_values_adjusted = q_values * action_mask + (1 - action_mask) * min_q_value
 
@@ -81,9 +81,9 @@ class DoubleDeepQLearningAgentER(DeepAgent):
 
         mini_batch = random.sample(self.replay_memory, self.batch_size)
         current_states = np.array([transition[0] for transition in mini_batch])
-        current_qs_list = self.model.predict(current_states)
+        current_qs_list = self.model.predict(current_states, verbose=0)
         new_current_states = np.array([transition[3] for transition in mini_batch])
-        future_qs_list = self.target_model.predict(new_current_states)
+        future_qs_list = self.target_model.predict(new_current_states, verbose=0)
 
         X = []
         Y = []

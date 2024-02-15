@@ -56,7 +56,7 @@ class DoubleDeepQLearningAgent(DeepAgent):
         if np.random.rand() <= epsilon:
             return self.env.sample()
 
-        q_values = self.target_model.predict(state) * action_mask
+        q_values = self.target_model.predict(state, verbose=0) * action_mask
         min_q_value = np.min(q_values) - 1
         q_values_adjusted = q_values * action_mask + (1 - action_mask) * min_q_value
 
@@ -67,9 +67,9 @@ class DoubleDeepQLearningAgent(DeepAgent):
 
     def train_model(self, state, action, reward, next_state, done):
 
-        current_qs = self.model.predict(state)
+        current_qs = self.model.predict(state, verbose=0)
 
-        future_qs = self.target_model.predict(next_state)
+        future_qs = self.target_model.predict(next_state, verbose=0)
 
         if not done:
             max_future_q = reward + self.gamma * np.max(future_qs)
