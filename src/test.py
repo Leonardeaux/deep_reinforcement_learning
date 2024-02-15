@@ -35,8 +35,7 @@ def main():
     # agent = DoubleDeepQLearningAgentER(env, episodes=episodes, learning_rate=0.001)
     # agent = DoubleDeepQLearningAgentPrioritizedER(env, episodes=episodes, learning_rate=0.001)
     # agent = RandomRolloutAgent(env, episodes=episodes)
-    agent = MCTSAgent(env, episodes=episodes)
-
+    agent = MCTSAgent(env2, episodes=episodes)
     scores, time_per_episode = agent.train()
     # agent.test()
 

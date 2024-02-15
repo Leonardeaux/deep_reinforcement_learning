@@ -8,7 +8,6 @@ class BalloonPopEnv(DeepEnv):
     def __init__(self):
         # RED = 0, YELLOW = 1, BLUE = 2
         # MOON = 3, STAR = 4, DIAMOND = 5
-
         OBS_SIZE = 11
         ACTION_SIZE = 32
         super().__init__(OBS_SIZE, ACTION_SIZE)
@@ -35,6 +34,7 @@ class BalloonPopEnv(DeepEnv):
         self.final_scores = None
         self.game_over = None
         self.dice = None
+        self.nb_player = 1
         self.reset()
 
     def reset(self):
@@ -133,7 +133,7 @@ class BalloonPopEnv(DeepEnv):
                 break
 
             if self.current_scores[key] == len(values) - 1 and key not in self.final_scores.keys():
-                self.final_scores[key] = sum(values)
+                self.final_scores[key] = sum(self.current_scores.values())
 
         return self.get_obs(), self.calculate_reward(), self.get_game_over()
 
@@ -157,7 +157,7 @@ class BalloonPopEnv(DeepEnv):
 
     def get_game_result_status(self):
         if self.get_game_over():
-            if self.get_score() > 160:
+            if self.get_score() > 100:
                 return 1
             else:
                 return 0
