@@ -8,9 +8,9 @@ import os
 import tensorflow as tf
 from envs.grid_world import GridWorldEnv
 from envs.tic_tac_toe import TicTacToeEnv
+from envs.balloon_pop import BalloonPopEnv
 from agents.mcts import MCTSAgent
 from agents.random_rollout import RandomRolloutAgent
-from agents.mcts_gym import MCTSAgent as MCTSAgentGym
 from agents.q_learning import QLearningAgent
 from agents.deep_q_learning import DeepQLearningAgent
 from agents.double_deep_q_learning import DoubleDeepQLearningAgent
@@ -25,25 +25,26 @@ def main():
     np.random.seed(42)
 
     env = TicTacToeEnv()
+    env2 = BalloonPopEnv()
     env3 = GridWorldEnv(size=5)
-    episodes = 5
+    episodes = 2000
 
     # agent = QLearningAgent(env, episodes=episodes, alpha=0.1, gamma=0.99, epsilon=0.1)
-    # agent = DeepQLearningAgent(env, episodes=episodes, learning_rate=0.001)
-    # agent = DoubleDeepQLearningAgent(env, episodes=episodes, learning_rate=0.01)
+    agent = DeepQLearningAgent(env, episodes=episodes, learning_rate=0.001)
+    # agent = DoubleDeepQLearningAgent(env, episodes=episodes, learning_rate=0.001, gamma=0.99, epsilon=0.2)
     # agent = DoubleDeepQLearningAgentER(env, episodes=episodes, learning_rate=0.001)
-    agent = DoubleDeepQLearningAgentPrioritizedER(env, episodes=episodes, learning_rate=0.001)
+    # agent = DoubleDeepQLearningAgentPrioritizedER(env, episodes=episodes, learning_rate=0.001)
 
     scores, time_per_episode = agent.train()
     agent.test()
-    #
-    # print()
-    # print("---------------------------------------------------------------------------------")
-    # average_score = np.mean(scores)
-    # print("Train Metrics")
-    # print(f"Moyenne des scores sur {episodes} épisodes: {average_score}")
-    # average_time = np.mean(time_per_episode)
-    # print(f"Temps moyen d'entraînement par épisode : {round(average_time, 2)} secondes.")
+
+    print()
+    print("---------------------------------------------------------------------------------")
+    average_score = np.mean(scores)
+    print("Train Metrics")
+    print(f"Moyenne des scores sur {episodes} épisodes: {average_score}")
+    average_time = np.mean(time_per_episode)
+    print(f"Temps moyen d'entraînement par épisode : {round(average_time, 2)} secondes.")
 
 
 if __name__ == '__main__':

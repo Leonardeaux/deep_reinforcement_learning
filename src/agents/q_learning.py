@@ -22,6 +22,8 @@ class QLearningAgent(DeepAgent):
             return str(state)
         elif isinstance(state, int):
             return str(state)
+        elif isinstance(state, list):
+            return str(state)
         else:
             return str(state.flatten().tolist())
 
