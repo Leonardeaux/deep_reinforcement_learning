@@ -144,6 +144,8 @@ class QLearningAgent(DeepAgent):
 
         average_score = np.mean(all_scores)
         print(f"Moyenne des scores sur {self.episodes} épisodes: {average_score}")
+        print(f"Win rate: {all_win_rates[-1]}")
+        print(f"Loss rate: {all_loss_rates[-1]}")
 
         create_plots(episode_numbers, all_win_rates, all_loss_rates)
 

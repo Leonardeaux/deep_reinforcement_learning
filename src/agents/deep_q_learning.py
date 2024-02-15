@@ -135,6 +135,7 @@ class DeepQLearningAgent(DeepAgent):
         return scores, time_per_episode
 
     def test(self):
+        episodes = 1000
         wins = 0
         looses = 0
         all_scores = []
@@ -143,7 +144,7 @@ class DeepQLearningAgent(DeepAgent):
         episode_numbers = list(range(self.episodes))
         moving_average = []
 
-        for e in range(self.episodes):
+        for e in range(episodes):
             state = self.env.reset()
             state = np.reshape(state, [1, self.env.OBS_SIZE])
             done = False
@@ -163,7 +164,7 @@ class DeepQLearningAgent(DeepAgent):
 
                 step += 1
 
-            print(f"Episode {e + 1}/{self.episodes}, score: {score}")
+            print(f"Episode {e + 1}/{episodes}, score: {score}")
             all_scores.append(score)
 
             wins += 1 if self.env.get_game_result_status() == 1 else 0
@@ -177,7 +178,9 @@ class DeepQLearningAgent(DeepAgent):
             moving_average.append(np.mean(all_scores[-100:]))
 
         average_score = np.mean(all_scores)
-        print(f"Moyenne des scores sur {self.episodes} épisodes: {average_score}")
+        print(f"Moyenne des scores sur {episodes} épisodes: {average_score}")
+        print(f"Win rate: {all_win_rates[-1]}")
+        print(f"Loss rate: {all_loss_rates[-1]}")
 
         create_plots(episode_numbers, all_win_rates, all_loss_rates)
 
