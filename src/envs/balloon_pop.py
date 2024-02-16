@@ -4,6 +4,10 @@ from src.envs.contracts import DeepEnv
 from src.agents.random import RandomAgent
 
 
+int_to_color = {0: "YELLOW", 1: "BLUE", 2: "RED"}
+int_to_symbol = {30: "STAR", 40: "MOON", 50: "DIAMOND"}
+
+
 class BalloonPopEnv(DeepEnv):
     def __init__(self):
         # RED = 0, YELLOW = 1, BLUE = 2
@@ -33,7 +37,7 @@ class BalloonPopEnv(DeepEnv):
         self.current_scores = None
         self.final_scores = None
         self.game_over = None
-        self.dice = None
+        self.dices = None
         self.nb_player = 1
         self.reset()
 
@@ -42,7 +46,7 @@ class BalloonPopEnv(DeepEnv):
         # self.current_scores = {0: 5, 1: 2, 2: 9, 30: 8, 40: 7, 50: 5}
         self.final_scores = {}
         self.game_over = False
-        self.dice = []
+        self.dices = []
 
         self.roll_dice()
 
@@ -65,7 +69,7 @@ class BalloonPopEnv(DeepEnv):
 
     def get_dice_rolls(self):
         dice = []
-        for d in self.dice:
+        for d in self.dices:
             dice.append(d[0] + d[1])
 
         return dice
@@ -80,7 +84,7 @@ class BalloonPopEnv(DeepEnv):
     def roll_dice(self):
         for i in range(self.dice_nb):
             # random of a combination of color and symbol
-            self.dice.append(random.choice(self.dice_tuple))
+            self.dices.append(random.choice(self.dice_tuple))
 
     def available_actions(self) -> np.ndarray:
         return np.arange(self.ACTION_SIZE)[self.available_actions_mask() == 1]
@@ -110,20 +114,20 @@ class BalloonPopEnv(DeepEnv):
 
         for i in range(self.dice_nb):
             if action & (1 << i):
-                dice_to_reroll.append(self.dice[i])
-                self.dice[i] = random.choice(self.dice_tuple)
+                dice_to_reroll.append(self.dices[i])
+                self.dices[i] = random.choice(self.dice_tuple)
 
         if len(dice_to_reroll) > 0:
-            self.dice.append(random.choice(self.dice_tuple))
+            self.dices.append(random.choice(self.dice_tuple))
             self.dice_nb += 1
         else:
             for i in range(self.dice_nb):
                 # verify if the dice get me in a max position of the column in the score sheet
-                if self.current_scores[self.dice[i][0]] < len(self.score_sheet[self.dice[i][0]]) - 1:
-                    self.current_scores[self.dice[i][0]] += 1
+                if self.current_scores[self.dices[i][0]] < len(self.score_sheet[self.dices[i][0]]) - 1:
+                    self.current_scores[self.dices[i][0]] += 1
 
-                if self.current_scores[self.dice[i][1]] < len(self.score_sheet[self.dice[i][1]]) - 1:
-                    self.current_scores[self.dice[i][1]] += 1
+                if self.current_scores[self.dices[i][1]] < len(self.score_sheet[self.dices[i][1]]) - 1:
+                    self.current_scores[self.dices[i][1]] += 1
 
         # Check for game over
         # If they are 3 columns filled, the game is over
@@ -164,25 +168,56 @@ class BalloonPopEnv(DeepEnv):
         else:
             return 0
 
+    def get_formatted_dices(self):
+        formatted_dices = []
+        for d in self.dices:
+            d0 = int_to_color[d[0]]
+            d1 = int_to_symbol[d[1]]
+            formatted_dice = (d0, d1)
+            formatted_dices.append(formatted_dice)
+
+        return formatted_dices
+
+    def dice_to_string(self, dice):
+        d0 = int_to_color[dice[0]]
+        d1 = int_to_symbol[dice[1]]
+        return f"{d0} {d1}"
+
+    def action_to_string(self, action):
+        if action == 0:
+            return "Keep all dices"
+        else:
+            dices = []
+            for i in range(self.dice_nb):
+                if action & (1 << i):
+                    dices.append(self.dice_to_string(self.dices[i]))
+            return f"Reroll dices: {dices}"
+
+    def action_mask_to_string(self, action_mask):
+        actions = []
+        for i in range(len(action_mask)):
+            if action_mask[i] == 1:
+                actions.append(self.action_to_string(i))
+        return actions
+
+    def play(self):
+        self.reset()
+        while not self.game_over:
+            self.print()
+            print(f"Your actual Score: {self.get_score()}")
+            print("Dice: ", self.get_formatted_dices())
+            print(self.action_mask_to_string(self.available_actions_mask()))
+            # print(f"Available actions: {self.available_actions()}")
+            action = input("Enter index of the action you wan't to choose: ")
+            self.step(int(action))
+            self.print()
+
+        print(f"Game over! Score: {self.get_score()}")
+
 
 if __name__ == '__main__':
     random.seed(42)
     np.random.seed(42)
 
     env = BalloonPopEnv()
-    print(env.reset())
-    print(env.get_obs())
-    mask = env.available_actions_mask()
-    print(mask)
-    i = 0
-    while not env.game_over:
-        i += 1
-        print(f"Step {i}")
-        action = 0
-        env.print()
-        print(env.step(action))
-        env.print()
-        print('available_actions_mask: ', env.available_actions_mask())
-        print('available_actions: ', env.available_actions())
-        print('sample: ', env.sample())
-        print('final_scores: ', env.final_scores)
+    env.play()

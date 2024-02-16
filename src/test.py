@@ -15,7 +15,6 @@ from agents.q_learning import QLearningAgent
 from agents.deep_q_learning import DeepQLearningAgent
 from agents.double_deep_q_learning import DoubleDeepQLearningAgent
 from agents.double_deep_q_learning_with_experience_replay import DoubleDeepQLearningAgentER
-from agents.double_deep_q_learning_with_prioritized_experience_replay import DoubleDeepQLearningAgentPrioritizedER
 from agents.random import RandomAgent
 from collections import deque
 
@@ -25,19 +24,12 @@ def main():
     np.random.seed(42)
 
     env = TicTacToeEnv()
-    env2 = BalloonPopEnv()
-    env3 = GridWorldEnv(size=5)
-    episodes = 500
 
-    # agent = QLearningAgent(env, episodes=episodes, alpha=0.1, gamma=0.99, epsilon=0.1)
-    # agent = DeepQLearningAgent(env, episodes=episodes, learning_rate=0.001)
-    # agent = DoubleDeepQLearningAgent(env, episodes=episodes, learning_rate=0.001, gamma=0.99, epsilon=0.2)
-    # agent = DoubleDeepQLearningAgentER(env, episodes=episodes, learning_rate=0.001)
-    # agent = DoubleDeepQLearningAgentPrioritizedER(env, episodes=episodes, learning_rate=0.001)
-    # agent = RandomRolloutAgent(env, episodes=episodes)
-    agent = MCTSAgent(env2, episodes=episodes)
+    episodes = 500
+    agent = MCTSAgent(env, episodes=episodes, max_depth=200)
+
     scores, time_per_episode = agent.train()
-    # agent.test()
+    agent.test()
 
     print()
     print("---------------------------------------------------------------------------------")

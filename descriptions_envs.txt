@@ -1,0 +1,26 @@
+Pour Grid World:
+    lancer play_envs.py et choisir l'environnement grid_world.
+
+    une fenetre pygame s'ouvre, vous pouvez déplacer l'agent avec les flèches du clavier.
+    le rond blanc signifie l'agent, le carré bleu signifie l'objectif et le rouge la case perdante.
+
+Pour Tic Tac Toe:
+    lancer play_envs.py et choisir l'environnement tic_tac_toe.
+
+    une fenetre pygame s'ouvre, vous pouvez choisir les cases avec la souris.
+
+Pour Cant Stop:
+    lancer play_envs.py et choisir l'environnement cant_stop.
+
+    le jeu se joue dans le terminal
+    vous devez choisir une combinaison de dés avec l'index du tableau affiché
+    puis choisir si vous voulez continuer ou non
+    jusqu'à la fin du jeu
+
+Pour Balloon Pop:
+    lancer play_envs.py et choisir l'environnement balloon_pop.
+
+    le jeu se joue dans le terminal
+    Les deux lancé sont afficher, et les combinaisons de dés à relancer le sont aussi
+    il faut choisir les dés à relancer
+    jusqu'à la fin du jeu
