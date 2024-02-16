@@ -23,13 +23,14 @@ def main():
     tf.config.set_visible_devices([], 'GPU')
     np.random.seed(42)
 
-    env = TicTacToeEnv()
+    env = BalloonPopEnv()
 
     episodes = 500
-    agent = MCTSAgent(env, episodes=episodes, max_depth=200)
+    agent = RandomAgent(env, episodes)
 
-    scores, time_per_episode = agent.train()
+    # scores, time_per_episode = agent.train()
     agent.test()
+    return
 
     print()
     print("---------------------------------------------------------------------------------")
